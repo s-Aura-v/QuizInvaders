@@ -7,6 +7,8 @@ canvas.height = window.innerHeight;
 const SPEED = 7;
 const PROJECTILE_SPEED = 8;
 
+let gameStarted = false;
+
 class Player {
     constructor() {
         this.velocity = {
@@ -29,8 +31,7 @@ class Player {
     }
 
     draw() {
-        // c.fillStyle = 'red'
-        // c.fillRect(this.position.x, this.position.y, this.width, this.height);
+        if (!this.image) return;
         c.drawImage(this.image, this.position.x, this.position.y, this.width, this.height);
     }
 
@@ -44,7 +45,6 @@ class Player {
             } else if (this.position.x + this.width > canvas.width) {
                 this.position.x = canvas.width - this.width;
             }
-
         }
     }
 }
@@ -53,13 +53,12 @@ class Projectile {
     constructor({position, velocity}) {
         this.position = position;
         this.velocity = velocity;
-
         this.radius = 3;
     }
 
     draw() {
         c.beginPath();
-        c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2)
+        c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
         c.fillStyle = 'pink';
         c.fill();
         c.closePath();
@@ -107,17 +106,27 @@ class Invader {
             this.position.x = canvas.width - this.width;
         }
     }
+}
 
+class Grid {
+    constructor() {
+        this.position = { x: 0, y: 0 };
+        this.velocity = { x: 0, y: 0 };
+        this.invaders = [new Invader()];
+    }
+
+    update() {
+        // Placeholder for future use
+    }
 }
 
 const projectiles = [];
-const invader = new Invader();
-const termDefInvaders = new Map();
 
 const rawData = 'Almorzar (o:ue)\tTo have lunch\n' +
     'Cerrar (e:ie)\tTo close\n' +
-    'Comenzar (e:ie)\tto begin\n'
-const map = new Map(
+    'Comenzar (e:ie)\tto begin\n';
+
+const termDefInvaders = new Map(
     rawData
         .trim()
         .split('\n')
@@ -126,18 +135,24 @@ const map = new Map(
             return [term.trim(), definition.trim()];
         })
 );
-console.log(map);
-
 
 const player = new Player();
-player.update();
 
 function animate() {
-    // PLAYER
     window.requestAnimationFrame(animate);
+
     c.fillStyle = 'black';
     c.fillRect(0, 0, canvas.width, canvas.height);
-    invader.update();
+
+    if (!gameStarted) {
+        // Startup screen
+        c.fillStyle = 'white';
+        c.font = '40px Arial';
+        c.textAlign = 'center';
+        c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
     player.update();
 
     // PROJECTILES
@@ -145,64 +160,55 @@ function animate() {
         if (projectile.position.y + projectile.radius <= 0) {
             setTimeout(() => {
                 projectiles.splice(index, 1);
-            }, 0)
+            }, 0);
         } else {
             projectile.update();
         }
-    })
-
-    // INVADERS
-
+    });
 }
 
 animate();
 
-/**
- * MOVING MECHANISMS
- */
-// you can instantly access an object event's value by doing ( { method } )
-// event.key = ( { key } )
+// INPUT: KEYDOWN
 window.addEventListener('keydown', ({key}) => {
+    if (!gameStarted && key === 'Enter') {
+        gameStarted = true;
+        return;
+    }
+
+    if (!gameStarted) return;
+
     switch (key) {
-        // case 'ArrowUp':
-        //     console.log("up");
-        //     break;
-        // case 'ArrowDown':
-        //     console.log("down");
-        //     break;
         case 'ArrowRight':
-            console.log("right");
             player.velocity.x = SPEED;
             break;
         case 'ArrowLeft':
-            console.log("left");
             player.velocity.x = -SPEED;
             break;
         case 'z':
         case 'Z':
-            console.log("Z: shoot");
-            console.log(projectiles)
-            projectiles.push(new Projectile(
-                {
-                    position: {
-                        x: player.position.x + (player.width / 2),
-                        y: player.position.y
-                    },
-                    velocity: {
-                        x: 0,
-                        y: -PROJECTILE_SPEED
-                    }
-                }));
+            projectiles.push(new Projectile({
+                position: {
+                    x: player.position.x + (player.width / 2),
+                    y: player.position.y
+                },
+                velocity: {
+                    x: 0,
+                    y: -PROJECTILE_SPEED
+                }
+            }));
             break;
         case 'x':
         case 'X':
             console.log("X: attach");
             break;
     }
-})
+});
 
-
+// INPUT: KEYUP
 window.addEventListener('keyup', ({key}) => {
+    if (!gameStarted) return;
+
     switch (key) {
         case 'ArrowRight':
         case 'ArrowLeft':
@@ -210,8 +216,3 @@ window.addEventListener('keyup', ({key}) => {
             break;
     }
 });
-
-// END OF MOVING MECHANICS
-
-
-
