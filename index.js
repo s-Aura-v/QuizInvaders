@@ -6,6 +6,8 @@ canvas.height = window.innerHeight;
 
 const SPEED = 7;
 const PROJECTILE_SPEED = 8;
+const PLAYER_HP = 3;
+const INVADER_HP = 3;
 
 let gameStarted = false;
 
@@ -23,6 +25,7 @@ class Player {
             this.image = image;
             this.width = image.width * scale;
             this.height = image.height * scale;
+            this.hp = PLAYER_HP;
             this.position = {
                 x: (canvas.width / 2) - (this.width / 2),
                 y: canvas.height - this.height - 20
@@ -53,7 +56,7 @@ class Projectile {
     constructor({position, velocity}) {
         this.position = position;
         this.velocity = velocity;
-        this.radius = 3;
+        this.radius = 5;
     }
 
     draw() {
@@ -72,7 +75,7 @@ class Projectile {
 }
 
 class Invader {
-    constructor({text = "INVADER", position = {x: canvas.width / 2, y: 0}}) {
+    constructor({ text = "INVADER", position = { x: canvas.width / 2, y: 0 }, hp = 3 }) {
         this.velocity = {
             x: 0,
             y: 1
@@ -80,12 +83,15 @@ class Invader {
 
         this.text = text;
         this.fontSize = 20;
-        this.width = this.fontSize * this.text.length * 0.6;
-        this.height = this.fontSize;
+        this.hp = hp;
         this.position = {
             x: position.x,
             y: position.y
         };
+
+        const metrics = c.measureText(this.text);
+        this.width = metrics.width;
+        this.height = this.fontSize;
     }
 
     draw() {
@@ -98,7 +104,20 @@ class Invader {
         this.draw();
         this.position.y += this.velocity.y;
     }
+
+    isHit(projectile) {
+        const textHeight = this.fontSize;
+        const textTop = this.position.y - textHeight;
+
+        return (
+            projectile.position.x > this.position.x &&
+            projectile.position.x < this.position.x + this.width &&
+            projectile.position.y > textTop &&
+            projectile.position.y < this.position.y
+        );
+    }
 }
+
 
 const invaders = [];
 const projectiles = [];
@@ -194,16 +213,30 @@ function animate() {
         }
     });
 
+
     // PROJECTILES
-    projectiles.forEach((projectile, index) => {
+    projectiles.forEach((projectile, pIndex) => {
+        projectile.update();
+
         if (projectile.position.y + projectile.radius <= 0) {
-            setTimeout(() => {
-                projectiles.splice(index, 1);
-            }, 0);
-        } else {
-            projectile.update();
+            projectiles.splice(pIndex, 1);
+            return;
         }
+
+        // Check collision with each invader
+        invaders.forEach((invader, iIndex) => {
+            if (invader.isHit(projectile)) {
+                invader.hp--;
+
+                if (invader.hp <= 0) {
+                    invaders.splice(iIndex, 1);
+                }
+
+                projectiles.splice(pIndex, 1);
+            }
+        });
     });
+
 }
 
 animate();
