@@ -11,17 +11,20 @@ const INVADER_HP = 3;
 
 let gameStarted = false;
 
+const invaders = [];
+const projectiles = [];
+const markProjectiles = [];
+const markedTargets = [];
+const permanentlyRemoved = new Set();
+let termDefInvaders = new Map();
+
 class Player {
     constructor() {
-        this.velocity = {
-            x: 0,
-            y: 0
-        }
-
+        this.velocity = { x: 0, y: 0 };
         const image = new Image();
         image.src = "./assets/player.png";
         image.onload = () => {
-            const scale = .03;
+            const scale = 0.03;
             this.image = image;
             this.width = image.width * scale;
             this.height = image.height * scale;
@@ -29,13 +32,14 @@ class Player {
             this.position = {
                 x: (canvas.width / 2) - (this.width / 2),
                 y: canvas.height - this.height - 20
-            }
-        }
+            };
+        };
     }
 
     draw() {
-        if (!this.image) return;
-        c.drawImage(this.image, this.position.x, this.position.y, this.width, this.height);
+        if (this.image) {
+            c.drawImage(this.image, this.position.x, this.position.y, this.width, this.height);
+        }
     }
 
     update() {
@@ -43,17 +47,15 @@ class Player {
             this.draw();
             this.position.x += this.velocity.x;
 
-            if (this.position.x < 0) {
-                this.position.x = 0;
-            } else if (this.position.x + this.width > canvas.width) {
+            if (this.position.x < 0) this.position.x = 0;
+            else if (this.position.x + this.width > canvas.width)
                 this.position.x = canvas.width - this.width;
-            }
         }
     }
 }
 
 class Projectile {
-    constructor({position, velocity}) {
+    constructor({ position, velocity }) {
         this.position = position;
         this.velocity = velocity;
         this.radius = 5;
@@ -74,21 +76,42 @@ class Projectile {
     }
 }
 
+class MarkProjectile {
+    constructor({ position, velocity }) {
+        this.position = position;
+        this.velocity = velocity;
+        this.radius = 7;
+        this.color = 'lime';
+    }
+
+    draw() {
+        c.beginPath();
+        c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+        c.fillStyle = this.color;
+        c.fill();
+        c.closePath();
+    }
+
+    update() {
+        this.draw();
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+    }
+}
+
 class Invader {
-    constructor({ text = "INVADER", position = { x: canvas.width / 2, y: 0 }, hp = 3 }) {
-        this.velocity = {
-            x: 0,
-            y: 1
-        };
-
+    constructor({ text = "INVADER", position = { x: canvas.width / 2, y: 0 }, hp = INVADER_HP, isDefinition = false }) {
+        this.velocity = { x: 0, y: 1 };
         this.text = text;
-        this.fontSize = 20;
         this.hp = hp;
-        this.position = {
-            x: position.x,
-            y: position.y
-        };
+        this.isDefinition = isDefinition;
+        this.fontSize = 20;
+        this.position = position;
+        this.isMarked = false;
+        this.markColor = null;
 
+        c.font = `${this.fontSize}px Arial`;
+        c.textAlign = 'left';
         const metrics = c.measureText(this.text);
         this.width = metrics.width;
         this.height = this.fontSize;
@@ -96,8 +119,27 @@ class Invader {
 
     draw() {
         c.font = `${this.fontSize}px Arial`;
-        c.fillStyle = 'white';
+        c.fillStyle = this.isMarked ? this.markColor : 'white';
         c.fillText(this.text, this.position.x, this.position.y);
+
+        if (this.hp < INVADER_HP) {
+            c.font = `${this.fontSize}px Arial`;
+            c.textAlign = 'left'; // ✅ Draw based on left corner
+            c.fillStyle = this.isMarked ? this.markColor : 'white';
+            c.fillText(this.text, this.position.x, this.position.y);
+        }
+
+        if (this.isMarked) {
+            // Draw a border around marked invaders
+            c.strokeStyle = this.markColor;
+            c.lineWidth = 2;
+            c.strokeRect(
+                this.position.x - 5,
+                this.position.y - this.height - 5,
+                this.width + 10,
+                this.height + 25
+            );
+        }
     }
 
     update() {
@@ -106,9 +148,7 @@ class Invader {
     }
 
     isHit(projectile) {
-        const textHeight = this.fontSize;
-        const textTop = this.position.y - textHeight;
-
+        const textTop = this.position.y - this.height;
         return (
             projectile.position.x > this.position.x &&
             projectile.position.x < this.position.x + this.width &&
@@ -118,12 +158,7 @@ class Invader {
     }
 }
 
-
-const invaders = [];
-const projectiles = [];
-let termDefInvaders = new Map();
-
-// START SCREEN OPTIMIZATION
+// --- Startup Setup ---
 function parseInputData(text) {
     return new Map(
         text.trim().split('\n').map(line => {
@@ -151,7 +186,7 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
     const reader = new FileReader();
     reader.onload = function (e) {
         const text = e.target.result;
-        document.getElementById('textInput').value = text; // preview in textarea
+        document.getElementById('textInput').value = text;
     };
     reader.readAsText(file);
 });
@@ -159,23 +194,30 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
     gameStarted = true;
+
     const terms = Array.from(termDefInvaders.keys());
 
     setInterval(() => {
         if (!gameStarted || terms.length === 0) return;
 
         const term = terms[Math.floor(Math.random() * terms.length)];
-        const x = Math.random() * (canvas.width - 150);
-        invaders.push(new Invader({
-            text: term,
-            position: {x, y: -20}
-        }));
-    }, 1700); // every 1.7 seconds [temp value; later make it so if you destroy a term, new ones spawn]
+        if (permanentlyRemoved.has(term)) return;
 
+        const isDefinition = Math.random() < 0.5;
+        const text = isDefinition ? termDefInvaders.get(term) : term;
+        if (!text || permanentlyRemoved.has(text)) return;
+
+        const x = Math.random() * (canvas.width - 150);
+
+        invaders.push(new Invader({
+            text,
+            isDefinition,
+            position: { x, y: -20 }
+        }));
+    }, 1700);
 }
 
-// END OF START SCREEN
-
+// --- Game Setup ---
 const player = new Player();
 
 function animate() {
@@ -185,64 +227,101 @@ function animate() {
     c.fillRect(0, 0, canvas.width, canvas.height);
 
     if (!gameStarted) {
-        // Title:
         c.fillStyle = 'white';
         c.font = '60px "Pixelify Sans"';
         c.textAlign = 'center';
         c.fillText('QuizInvaders', canvas.width / 2, canvas.height / 2 - 60);
 
-        // Subtitle: "Press ENTER to Start"
         c.font = '30px Arial';
         c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2 + 20);
-        // c.fillStyle = 'white';
-        // c.font = '40px Arial';
-        // c.textAlign = 'center';
-        // c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2);
         return;
     }
 
     player.update();
 
-    // INVADERS
+    // Invaders
     invaders.forEach((invader, index) => {
         invader.update();
-
-        // Remove if off screen
-        if (invader.position.y > canvas.height) {
-            invaders.splice(index, 1);
-        }
+        if (invader.position.y > canvas.height) invaders.splice(index, 1);
     });
 
-
-    // PROJECTILES
-    projectiles.forEach((projectile, pIndex) => {
+    // Projectiles (damage)
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const projectile = projectiles[i];
         projectile.update();
 
         if (projectile.position.y + projectile.radius <= 0) {
-            projectiles.splice(pIndex, 1);
-            return;
+            projectiles.splice(i, 1);
+            continue;
         }
 
-        // Check collision with each invader
-        invaders.forEach((invader, iIndex) => {
+        for (let j = invaders.length - 1; j >= 0; j--) {
+            const invader = invaders[j];
             if (invader.isHit(projectile)) {
                 invader.hp--;
-
                 if (invader.hp <= 0) {
-                    invaders.splice(iIndex, 1);
+                    invaders.splice(j, 1);
+                }
+                projectiles.splice(i, 1);
+                break; // Exit inner loop since projectile is gone
+            }
+        }
+    }
+
+    // Mark projectiles
+    for (let i = markProjectiles.length - 1; i >= 0; i--) {
+        const mark = markProjectiles[i];
+        mark.update();
+
+        if (mark.position.y + mark.radius <= 0) {
+            markProjectiles.splice(i, 1);
+            continue;
+        }
+
+        for (let j = invaders.length - 1; j >= 0; j--) {
+            const invader = invaders[j];
+            if (invader.isHit(mark)) {
+                // Mark the invader with a random color
+                invader.isMarked = true;
+                invader.markColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+                markedTargets.push(invader);
+
+                if (markedTargets.length === 2) {
+                    const [a, b] = markedTargets;
+                    const isMatch = (
+                        termDefInvaders.get(a.text) === b.text ||
+                        termDefInvaders.get(b.text) === a.text
+                    );
+
+                    if (isMatch) {
+                        permanentlyRemoved.add(a.text);
+                        permanentlyRemoved.add(b.text);
+                        const indexA = invaders.indexOf(a);
+                        if (indexA > -1) invaders.splice(indexA, 1);
+                        const indexB = invaders.indexOf(b);
+                        if (indexB > -1) invaders.splice(indexB, 1);
+                    } else {
+                        // Flash red if wrong match
+                        a.markColor = 'red';
+                        b.markColor = 'red';
+                        setTimeout(() => {
+                            a.isMarked = false;
+                            b.isMarked = false;
+                        }, 500);
+                    }
+
+                    markedTargets.length = 0;
                 }
 
-                projectiles.splice(pIndex, 1);
+                markProjectiles.splice(i, 1);
+                break; // Exit inner loop since mark projectile is gone
             }
-        });
-    });
-
+        }
+    }
 }
 
-animate();
-
-// INPUT: KEYDOWN
-window.addEventListener('keydown', ({key}) => {
+// --- Controls ---
+window.addEventListener('keydown', ({ key }) => {
     if (!gameStarted && key === 'Enter') {
         gameStarted = true;
         return;
@@ -264,27 +343,27 @@ window.addEventListener('keydown', ({key}) => {
                     x: player.position.x + (player.width / 2),
                     y: player.position.y
                 },
-                velocity: {
-                    x: 0,
-                    y: -PROJECTILE_SPEED
-                }
+                velocity: { x: 0, y: -PROJECTILE_SPEED }
             }));
             break;
         case 'x':
         case 'X':
-            console.log("X: attach");
+            if (markProjectiles.length < 2) {
+                markProjectiles.push(new MarkProjectile({
+                    position: {
+                        x: player.position.x + (player.width / 2),
+                        y: player.position.y
+                    },
+                    velocity: { x: 0, y: -PROJECTILE_SPEED }
+                }));
+            }
             break;
     }
 });
 
-// INPUT: KEYUP
-window.addEventListener('keyup', ({key}) => {
+window.addEventListener('keyup', ({ key }) => {
     if (!gameStarted) return;
-
-    switch (key) {
-        case 'ArrowRight':
-        case 'ArrowLeft':
-            player.velocity.x = 0;
-            break;
-    }
+    if (key === 'ArrowRight' || key === 'ArrowLeft') player.velocity.x = 0;
 });
+
+animate();
