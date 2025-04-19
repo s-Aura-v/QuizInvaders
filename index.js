@@ -72,19 +72,19 @@ class Projectile {
 }
 
 class Invader {
-    constructor() {
+    constructor({text = "INVADER", position = {x: canvas.width / 2, y: 0}}) {
         this.velocity = {
             x: 0,
-            y: 0
+            y: 1
         };
 
-        this.text = "INVADER";
+        this.text = text;
         this.fontSize = 20;
-        this.width = this.fontSize;
+        this.width = this.fontSize * this.text.length * 0.6;
         this.height = this.fontSize;
         this.position = {
-            x: (canvas.width / 2) - (this.width / 2),
-            y: canvas.height / 2
+            x: position.x,
+            y: position.y
         };
     }
 
@@ -96,34 +96,15 @@ class Invader {
 
     update() {
         this.draw();
-        this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
-
-        // Clamp to canvas
-        if (this.position.x < 0) {
-            this.position.x = 0;
-        } else if (this.position.x + this.width > canvas.width) {
-            this.position.x = canvas.width - this.width;
-        }
     }
 }
 
-class Grid {
-    constructor() {
-        this.position = { x: 0, y: 0 };
-        this.velocity = { x: 0, y: 0 };
-        this.invaders = [new Invader()];
-    }
-
-    update() {
-        // Placeholder for future use
-    }
-}
-
+const invaders = [];
 const projectiles = [];
+let termDefInvaders = new Map();
 
 // START SCREEN OPTIMIZATION
-let termDefInvaders = new Map();
 function parseInputData(text) {
     return new Map(
         text.trim().split('\n').map(line => {
@@ -159,7 +140,21 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
     gameStarted = true;
+    const terms = Array.from(termDefInvaders.keys());
+
+    setInterval(() => {
+        if (!gameStarted || terms.length === 0) return;
+
+        const term = terms[Math.floor(Math.random() * terms.length)];
+        const x = Math.random() * (canvas.width - 150);
+        invaders.push(new Invader({
+            text: term,
+            position: {x, y: -20}
+        }));
+    }, 1700); // every 1.7 seconds [temp value; later make it so if you destroy a term, new ones spawn]
+
 }
+
 // END OF START SCREEN
 
 const player = new Player();
@@ -188,6 +183,16 @@ function animate() {
     }
 
     player.update();
+
+    // INVADERS
+    invaders.forEach((invader, index) => {
+        invader.update();
+
+        // Remove if off screen
+        if (invader.position.y > canvas.height) {
+            invaders.splice(index, 1);
+        }
+    });
 
     // PROJECTILES
     projectiles.forEach((projectile, index) => {
