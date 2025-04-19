@@ -5,6 +5,8 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 const SPEED = 7;
+const PROJECTILE_SPEED = 8;
+
 class Player {
     constructor() {
         this.velocity = {
@@ -47,18 +49,54 @@ class Player {
     }
 }
 
+class Projectile {
+    constructor({position, velocity}) {
+        this.position = position;
+        this.velocity = velocity;
+
+        this.radius = 3;
+    }
+
+    draw() {
+        c.beginPath();
+        c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2)
+        c.fillStyle = 'pink';
+        c.fill();
+        c.closePath();
+    }
+
+    update() {
+        this.draw();
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+    }
+}
+
+const projectiles = [];
+
 const player = new Player();
 player.update();
 
 function animate() {
+    // PLAYER
     window.requestAnimationFrame(animate);
     c.fillStyle = 'black';
     c.fillRect(0, 0, canvas.width, canvas.height);
     player.update();
+
+    // PROJECTILES
+    projectiles.forEach((projectile, index) => {
+        if (projectile.position.y + projectile.radius <= 0) {
+            setTimeout(() => {
+                projectiles.splice(index, 1);
+            }, 0)
+        } else {
+            projectile.update();
+        }
+    })
 }
 
 animate();
-
 
 /**
  * MOVING MECHANISMS
@@ -84,6 +122,18 @@ window.addEventListener('keydown', ({key}) => {
         case 'z':
         case 'Z':
             console.log("Z: shoot");
+            console.log(projectiles)
+            projectiles.push(new Projectile(
+                {
+                    position: {
+                        x: player.position.x + (player.width/2),
+                        y: player.position.y
+                    },
+                    velocity: {
+                        x: 0,
+                        y: -PROJECTILE_SPEED
+                    }
+                }));
             break;
         case 'x':
         case 'X':
@@ -103,3 +153,6 @@ window.addEventListener('keyup', ({key}) => {
 });
 
 // END OF MOVING MECHANICS
+
+
+
