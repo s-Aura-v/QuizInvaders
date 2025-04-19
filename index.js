@@ -114,6 +114,21 @@ const projectiles = [];
 const invader = new Invader();
 const termDefInvaders = new Map();
 
+const rawData = 'Almorzar (o:ue)\tTo have lunch\n' +
+    'Cerrar (e:ie)\tTo close\n' +
+    'Comenzar (e:ie)\tto begin\n'
+const map = new Map(
+    rawData
+        .trim()
+        .split('\n')
+        .map(line => {
+            const [term, definition] = line.split('\t');
+            return [term.trim(), definition.trim()];
+        })
+);
+console.log(map);
+
+
 const player = new Player();
 player.update();
 
