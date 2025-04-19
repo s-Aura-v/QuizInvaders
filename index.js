@@ -72,7 +72,47 @@ class Projectile {
     }
 }
 
+class Invader {
+    constructor() {
+        this.velocity = {
+            x: 0,
+            y: 0
+        };
+
+        this.text = "INVADER";
+        this.fontSize = 20;
+        this.width = this.fontSize;
+        this.height = this.fontSize;
+        this.position = {
+            x: (canvas.width / 2) - (this.width / 2),
+            y: canvas.height / 2
+        };
+    }
+
+    draw() {
+        c.font = `${this.fontSize}px Arial`;
+        c.fillStyle = 'white';
+        c.fillText(this.text, this.position.x, this.position.y);
+    }
+
+    update() {
+        this.draw();
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+
+        // Clamp to canvas
+        if (this.position.x < 0) {
+            this.position.x = 0;
+        } else if (this.position.x + this.width > canvas.width) {
+            this.position.x = canvas.width - this.width;
+        }
+    }
+
+}
+
 const projectiles = [];
+const invader = new Invader();
+const termDefInvaders = new Map();
 
 const player = new Player();
 player.update();
@@ -82,6 +122,7 @@ function animate() {
     window.requestAnimationFrame(animate);
     c.fillStyle = 'black';
     c.fillRect(0, 0, canvas.width, canvas.height);
+    invader.update();
     player.update();
 
     // PROJECTILES
@@ -94,6 +135,9 @@ function animate() {
             projectile.update();
         }
     })
+
+    // INVADERS
+
 }
 
 animate();
@@ -126,7 +170,7 @@ window.addEventListener('keydown', ({key}) => {
             projectiles.push(new Projectile(
                 {
                     position: {
-                        x: player.position.x + (player.width/2),
+                        x: player.position.x + (player.width / 2),
                         y: player.position.y
                     },
                     velocity: {
