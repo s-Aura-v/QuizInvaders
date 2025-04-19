@@ -1,7 +1,28 @@
 <head>
     <link rel="stylesheet" href="index.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Jost:ital,wght@0,100..900;1,100..900&family=Pixelify+Sans:wght@400..700&display=swap');
+    </style>
 </head>
 <canvas>
 
 </canvas>
+
+<canvas></canvas>
+
+<div id="start-screen"
+     style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: black; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; font-family: 'Pixelify Sans', sans-serif; z-index: 10;">
+    <h1 style="font-size: 64px;">QuizInvaders</h1>
+
+    <label>Paste terms and definitions (term
+        <TAB>definition per line):
+    </label>
+    <textarea id="textInput" rows="6" cols="40" style="resize: none;"></textarea>
+
+    <label>Or upload a .txt file:</label>
+    <input type="file" id="fileInput" accept=".txt">
+
+    <button id="startButton" style="padding: 10px 20px; font-size: 18px;">Start Game</button>
+</div>
+
 <script src="index.js"></script>

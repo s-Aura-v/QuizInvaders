@@ -122,19 +122,45 @@ class Grid {
 
 const projectiles = [];
 
-const rawData = 'Almorzar (o:ue)\tTo have lunch\n' +
-    'Cerrar (e:ie)\tTo close\n' +
-    'Comenzar (e:ie)\tto begin\n';
-
-const termDefInvaders = new Map(
-    rawData
-        .trim()
-        .split('\n')
-        .map(line => {
+// START SCREEN OPTIMIZATION
+let termDefInvaders = new Map();
+function parseInputData(text) {
+    return new Map(
+        text.trim().split('\n').map(line => {
             const [term, definition] = line.split('\t');
-            return [term.trim(), definition.trim()];
-        })
-);
+            return [term?.trim(), definition?.trim()];
+        }).filter(([term, def]) => term && def)
+    );
+}
+
+document.getElementById('startButton').addEventListener('click', () => {
+    const textInput = document.getElementById('textInput').value.trim();
+
+    if (textInput.length > 0) {
+        termDefInvaders = parseInputData(textInput);
+        startGame();
+    } else {
+        alert('Please paste text or upload a file.');
+    }
+});
+
+document.getElementById('fileInput').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const text = e.target.result;
+        document.getElementById('textInput').value = text; // preview in textarea
+    };
+    reader.readAsText(file);
+});
+
+function startGame() {
+    document.getElementById('start-screen').style.display = 'none';
+    gameStarted = true;
+}
+// END OF START SCREEN
 
 const player = new Player();
 
@@ -145,11 +171,19 @@ function animate() {
     c.fillRect(0, 0, canvas.width, canvas.height);
 
     if (!gameStarted) {
-        // Startup screen
+        // Title:
         c.fillStyle = 'white';
-        c.font = '40px Arial';
+        c.font = '60px "Pixelify Sans"';
         c.textAlign = 'center';
-        c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2);
+        c.fillText('QuizInvaders', canvas.width / 2, canvas.height / 2 - 60);
+
+        // Subtitle: "Press ENTER to Start"
+        c.font = '30px Arial';
+        c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2 + 20);
+        // c.fillStyle = 'white';
+        // c.font = '40px Arial';
+        // c.textAlign = 'center';
+        // c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2);
         return;
     }
 
