@@ -11,7 +11,6 @@ const INVADER_HP = 3;
 
 let gameStarted = false;
 let gameOver = false;
-let totalMatchPairs = 0;
 
 const invaders = [];
 const projectiles = [];
@@ -22,7 +21,7 @@ let termDefInvaders = new Map();
 
 class Player {
     constructor() {
-        this.velocity = { x: 0, y: 0 };
+        this.velocity = {x: 0, y: 0};
         const image = new Image();
         image.src = "./assets/player.png";
         image.onload = () => {
@@ -48,6 +47,7 @@ class Player {
         if (this.image) {
             this.draw();
             this.position.x += this.velocity.x;
+
             if (this.position.x < 0) this.position.x = 0;
             else if (this.position.x + this.width > canvas.width)
                 this.position.x = canvas.width - this.width;
@@ -56,7 +56,7 @@ class Player {
 }
 
 class Projectile {
-    constructor({ position, velocity }) {
+    constructor({position, velocity}) {
         this.position = position;
         this.velocity = velocity;
         this.radius = 5;
@@ -78,7 +78,7 @@ class Projectile {
 }
 
 class MarkProjectile {
-    constructor({ position, velocity }) {
+    constructor({position, velocity}) {
         this.position = position;
         this.velocity = velocity;
         this.radius = 7;
@@ -101,8 +101,8 @@ class MarkProjectile {
 }
 
 class Invader {
-    constructor({ text = "INVADER", position = { x: canvas.width / 2, y: 0 }, hp = INVADER_HP, isDefinition = false }) {
-        this.velocity = { x: 0, y: 1 };
+    constructor({text = "INVADER", position = {x: canvas.width / 2, y: 0}, hp = INVADER_HP, isDefinition = false}) {
+        this.velocity = {x: 0, y: 1};
         this.text = text;
         this.hp = hp;
         this.isDefinition = isDefinition;
@@ -120,14 +120,14 @@ class Invader {
 
     draw() {
         c.font = `${this.fontSize}px Arial`;
-        c.textAlign = 'left';
         c.fillStyle = this.isMarked ? this.markColor : 'white';
         c.fillText(this.text, this.position.x, this.position.y);
 
         if (this.hp < INVADER_HP) {
-            c.font = '14px Arial';
-            c.fillStyle = 'red';
-            c.fillText(`HP: ${this.hp}`, this.position.x, this.position.y + 20);
+            c.font = `${this.fontSize}px Arial`;
+            c.textAlign = 'left';
+            c.fillStyle = this.isMarked ? this.markColor : 'white';
+            c.fillText(this.text, this.position.x, this.position.y);
         }
 
         if (this.isMarked) {
@@ -194,29 +194,45 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
     gameStarted = true;
-    gameOver = false;
-    permanentlyRemoved.clear();
 
     const terms = Array.from(termDefInvaders.keys());
-    totalMatchPairs = terms.length;
+    let currentTermIndex = 0;
+    let showTermNext = true;
 
     setInterval(() => {
-        if (!gameStarted || gameOver || terms.length === 0) return;
+        if (!gameStarted || terms.length === 0) return;
 
-        const term = terms[Math.floor(Math.random() * terms.length)];
-        if (permanentlyRemoved.has(term)) return;
+        // Cycle through terms in order
+        const term = terms[currentTermIndex];
+        if (permanentlyRemoved.has(term)) {
+            currentTermIndex = (currentTermIndex + 1) % terms.length;
+            return;
+        }
 
-        const isDefinition = Math.random() < 0.5;
-        const text = isDefinition ? termDefInvaders.get(term) : term;
-        if (!text || permanentlyRemoved.has(text)) return;
+        const text = showTermNext ? term : termDefInvaders.get(term);
+        const isDefinition = !showTermNext;
+
+        if (!text || permanentlyRemoved.has(text)) {
+            currentTermIndex = (currentTermIndex + 1) % terms.length;
+            showTermNext = true;
+            return;
+        }
 
         const x = Math.random() * (canvas.width - 150);
 
         invaders.push(new Invader({
             text,
             isDefinition,
-            position: { x, y: -20 }
+            position: {x, y: -20}
         }));
+
+        // Alternate between term and definition for the next spawn
+        showTermNext = !showTermNext;
+
+        // Only move to next term after showing both term and definition
+        if (showTermNext) {
+            currentTermIndex = (currentTermIndex + 1) % terms.length;
+        }
     }, 1700);
 }
 
@@ -229,23 +245,33 @@ function animate() {
     c.fillStyle = 'black';
     c.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (gameOver) { // ✅ Game has ended
-        c.fillStyle = 'white';
-        c.font = '64px "Pixelify Sans"';
-        c.textAlign = 'center';
-        c.fillText('🎉 You Win! 🎉', canvas.width / 2, canvas.height / 2);
-        return;
-    }
-
     if (!gameStarted) {
         c.fillStyle = 'white';
         c.font = '60px "Pixelify Sans"';
         c.textAlign = 'center';
         c.fillText('QuizInvaders', canvas.width / 2, canvas.height / 2 - 60);
+
         c.font = '30px Arial';
         c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2 + 20);
         return;
     }
+
+    const allTermsMatched = Array.from(termDefInvaders.keys()).every(term =>
+        permanentlyRemoved.has(term) && permanentlyRemoved.has(termDefInvaders.get(term))
+    );
+
+    if (allTermsMatched) {
+        c.fillStyle = 'white';
+        c.font = '60px "Pixelify Sans"';
+        c.textAlign = 'center';
+        c.fillText('VICTORY!', canvas.width / 2, canvas.height / 2 - 60);
+
+        c.font = '30px Arial';
+        c.fillText('All pairs matched!', canvas.width / 2, canvas.height / 2 + 20);
+        c.fillText('Refresh to play again', canvas.width / 2, canvas.height / 2 + 60);
+        return;
+    }
+
 
     player.update();
 
@@ -255,10 +281,11 @@ function animate() {
         if (invader.position.y > canvas.height) invaders.splice(index, 1);
     });
 
-    // Projectiles
+    // Projectiles (damage)
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const projectile = projectiles[i];
         projectile.update();
+
         if (projectile.position.y + projectile.radius <= 0) {
             projectiles.splice(i, 1);
             continue;
@@ -268,7 +295,9 @@ function animate() {
             const invader = invaders[j];
             if (invader.isHit(projectile)) {
                 invader.hp--;
-                if (invader.hp <= 0) invaders.splice(j, 1);
+                if (invader.hp <= 0) {
+                    invaders.splice(j, 1);
+                }
                 projectiles.splice(i, 1);
                 break;
             }
@@ -303,14 +332,11 @@ function animate() {
                         permanentlyRemoved.add(a.text);
                         permanentlyRemoved.add(b.text);
                         const indexA = invaders.indexOf(a);
-                        const indexB = invaders.indexOf(b);
                         if (indexA > -1) invaders.splice(indexA, 1);
+                        const indexB = invaders.indexOf(b);
                         if (indexB > -1) invaders.splice(indexB, 1);
 
 
-                        if (permanentlyRemoved.size === totalMatchPairs * 2) {
-                            gameOver = true;
-                        }
                     } else {
                         a.markColor = 'red';
                         b.markColor = 'red';
@@ -321,6 +347,7 @@ function animate() {
                     }
 
                     markedTargets.length = 0;
+
                 }
 
                 markProjectiles.splice(i, 1);
@@ -331,13 +358,13 @@ function animate() {
 }
 
 // --- Controls ---
-window.addEventListener('keydown', ({ key }) => {
+window.addEventListener('keydown', ({key}) => {
     if (!gameStarted && key === 'Enter') {
         gameStarted = true;
         return;
     }
 
-    if (!gameStarted || gameOver) return;
+    if (!gameStarted) return;
 
     switch (key) {
         case 'ArrowRight':
@@ -353,7 +380,7 @@ window.addEventListener('keydown', ({ key }) => {
                     x: player.position.x + (player.width / 2),
                     y: player.position.y
                 },
-                velocity: { x: 0, y: -PROJECTILE_SPEED }
+                velocity: {x: 0, y: -PROJECTILE_SPEED}
             }));
             break;
         case 'x':
@@ -364,14 +391,14 @@ window.addEventListener('keydown', ({ key }) => {
                         x: player.position.x + (player.width / 2),
                         y: player.position.y
                     },
-                    velocity: { x: 0, y: -PROJECTILE_SPEED }
+                    velocity: {x: 0, y: -PROJECTILE_SPEED}
                 }));
             }
             break;
     }
 });
 
-window.addEventListener('keyup', ({ key }) => {
+window.addEventListener('keyup', ({key}) => {
     if (!gameStarted) return;
     if (key === 'ArrowRight' || key === 'ArrowLeft') player.velocity.x = 0;
 });
