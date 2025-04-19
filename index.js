@@ -10,6 +10,8 @@ const PLAYER_HP = 3;
 const INVADER_HP = 3;
 
 let gameStarted = false;
+let gameOver = false;
+let totalMatchPairs = 0;
 
 const invaders = [];
 const projectiles = [];
@@ -46,7 +48,6 @@ class Player {
         if (this.image) {
             this.draw();
             this.position.x += this.velocity.x;
-
             if (this.position.x < 0) this.position.x = 0;
             else if (this.position.x + this.width > canvas.width)
                 this.position.x = canvas.width - this.width;
@@ -119,18 +120,17 @@ class Invader {
 
     draw() {
         c.font = `${this.fontSize}px Arial`;
+        c.textAlign = 'left';
         c.fillStyle = this.isMarked ? this.markColor : 'white';
         c.fillText(this.text, this.position.x, this.position.y);
 
         if (this.hp < INVADER_HP) {
-            c.font = `${this.fontSize}px Arial`;
-            c.textAlign = 'left'; // ✅ Draw based on left corner
-            c.fillStyle = this.isMarked ? this.markColor : 'white';
-            c.fillText(this.text, this.position.x, this.position.y);
+            c.font = '14px Arial';
+            c.fillStyle = 'red';
+            c.fillText(`HP: ${this.hp}`, this.position.x, this.position.y + 20);
         }
 
         if (this.isMarked) {
-            // Draw a border around marked invaders
             c.strokeStyle = this.markColor;
             c.lineWidth = 2;
             c.strokeRect(
@@ -194,11 +194,14 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
     gameStarted = true;
+    gameOver = false;
+    permanentlyRemoved.clear();
 
     const terms = Array.from(termDefInvaders.keys());
+    totalMatchPairs = terms.length;
 
     setInterval(() => {
-        if (!gameStarted || terms.length === 0) return;
+        if (!gameStarted || gameOver || terms.length === 0) return;
 
         const term = terms[Math.floor(Math.random() * terms.length)];
         if (permanentlyRemoved.has(term)) return;
@@ -226,12 +229,19 @@ function animate() {
     c.fillStyle = 'black';
     c.fillRect(0, 0, canvas.width, canvas.height);
 
+    if (gameOver) { // ✅ Game has ended
+        c.fillStyle = 'white';
+        c.font = '64px "Pixelify Sans"';
+        c.textAlign = 'center';
+        c.fillText('🎉 You Win! 🎉', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
     if (!gameStarted) {
         c.fillStyle = 'white';
         c.font = '60px "Pixelify Sans"';
         c.textAlign = 'center';
         c.fillText('QuizInvaders', canvas.width / 2, canvas.height / 2 - 60);
-
         c.font = '30px Arial';
         c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2 + 20);
         return;
@@ -245,11 +255,10 @@ function animate() {
         if (invader.position.y > canvas.height) invaders.splice(index, 1);
     });
 
-    // Projectiles (damage)
+    // Projectiles
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const projectile = projectiles[i];
         projectile.update();
-
         if (projectile.position.y + projectile.radius <= 0) {
             projectiles.splice(i, 1);
             continue;
@@ -259,11 +268,9 @@ function animate() {
             const invader = invaders[j];
             if (invader.isHit(projectile)) {
                 invader.hp--;
-                if (invader.hp <= 0) {
-                    invaders.splice(j, 1);
-                }
+                if (invader.hp <= 0) invaders.splice(j, 1);
                 projectiles.splice(i, 1);
-                break; // Exit inner loop since projectile is gone
+                break;
             }
         }
     }
@@ -281,7 +288,6 @@ function animate() {
         for (let j = invaders.length - 1; j >= 0; j--) {
             const invader = invaders[j];
             if (invader.isHit(mark)) {
-                // Mark the invader with a random color
                 invader.isMarked = true;
                 invader.markColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
                 markedTargets.push(invader);
@@ -297,11 +303,15 @@ function animate() {
                         permanentlyRemoved.add(a.text);
                         permanentlyRemoved.add(b.text);
                         const indexA = invaders.indexOf(a);
-                        if (indexA > -1) invaders.splice(indexA, 1);
                         const indexB = invaders.indexOf(b);
+                        if (indexA > -1) invaders.splice(indexA, 1);
                         if (indexB > -1) invaders.splice(indexB, 1);
+
+
+                        if (permanentlyRemoved.size === totalMatchPairs * 2) {
+                            gameOver = true;
+                        }
                     } else {
-                        // Flash red if wrong match
                         a.markColor = 'red';
                         b.markColor = 'red';
                         setTimeout(() => {
@@ -314,7 +324,7 @@ function animate() {
                 }
 
                 markProjectiles.splice(i, 1);
-                break; // Exit inner loop since mark projectile is gone
+                break;
             }
         }
     }
@@ -327,7 +337,7 @@ window.addEventListener('keydown', ({ key }) => {
         return;
     }
 
-    if (!gameStarted) return;
+    if (!gameStarted || gameOver) return;
 
     switch (key) {
         case 'ArrowRight':
