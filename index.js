@@ -104,7 +104,8 @@ class MarkProjectile {
 
 class Invader {
     constructor({text = "INVADER", position = {x: canvas.width / 2, y: 0}, hp = INVADER_HP, isDefinition = false}) {
-        this.velocity = {x: 0, y: 1};
+        const yVelocity = (Math.random() * 3) + 1;
+        this.velocity = {x: 0, y: yVelocity};
         this.text = text;
         this.hp = hp;
         this.isDefinition = isDefinition;
