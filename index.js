@@ -1,12 +1,12 @@
 const canvas = document.querySelector("canvas");
 const c = canvas.getContext('2d');
 const stars = [];
-
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 createStars();
 
 const SPEED = 7;
+const SPRINT_SPEED = 15;
 const PROJECTILE_SPEED = 8;
 const PLAYER_HP = 3;
 const INVADER_HP = 3;
@@ -20,6 +20,7 @@ const markProjectiles = [];
 const markedTargets = [];
 const permanentlyRemoved = new Set();
 let termDefInvaders = new Map();
+let shiftHeld = false;
 
 class Player {
     constructor() {
@@ -234,7 +235,6 @@ function drawTwinklingStars(ctx) {
 }
 
 
-
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
     gameStarted = true;
@@ -310,7 +310,7 @@ function animate() {
     c.fillStyle = 'white';
     c.font = '24px Arial';
     c.textAlign = 'left';
-    c.fillText(`Matched Pairs: ${permanentlyRemoved.size/2}/${termDefInvaders.size}`, canvas.width / 2, canvas.height - 20);
+    c.fillText(`Matched Pairs: ${permanentlyRemoved.size / 2}/${termDefInvaders.size}`, canvas.width / 2, canvas.height - 20);
 
 
     player.update();
@@ -408,10 +408,10 @@ window.addEventListener('keydown', ({key}) => {
 
     switch (key) {
         case 'ArrowRight':
-            player.velocity.x = SPEED;
+            player.velocity.x = (shiftHeld ? SPRINT_SPEED : SPEED);
             break;
         case 'ArrowLeft':
-            player.velocity.x = -SPEED;
+            player.velocity.x = -(shiftHeld ? SPRINT_SPEED : SPEED);
             break;
         case 'z':
         case 'Z':
@@ -435,12 +435,24 @@ window.addEventListener('keydown', ({key}) => {
                 }));
             }
             break;
+        case 'Shift':
+            shiftHeld = true;
+            if (player.velocity.x !== 0) {
+                player.velocity.x = player.velocity.x > 0 ? SPRINT_SPEED : -SPRINT_SPEED;
+            }
     }
 });
 
 window.addEventListener('keyup', ({key}) => {
     if (!gameStarted) return;
-    if (key === 'ArrowRight' || key === 'ArrowLeft') player.velocity.x = 0;
+    if (key === 'ArrowRight' || key === 'ArrowLeft') {
+        player.velocity.x = 0;
+    } else if (key === 'Shift') {
+        shiftHeld = false;
+        if (player.velocity.x !== 0) {
+            player.velocity.x = player.velocity.x > 0 ? SPEED : -SPEED;
+        }
+    }
 });
 
 animate();
