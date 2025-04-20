@@ -1,3 +1,61 @@
 body {
     margin: 0;
+    overflow: hidden;
 }
+
+#start-screen {
+    background: radial-gradient(circle at 100%, #333, #333 50%, #eee 75%, #333 75%);
+}
+
+.start-container {
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    /*max-width: 100vw;*/
+    /*min-width: 100vw;*/
+    width: 50%;
+    margin: auto;
+    height:100vh;
+
+}
+
+.title {
+    background: linear-gradient(
+            to right,
+            #7953cd 20%,
+            #00affa 30%,
+            #0190cd 70%,
+            #764ada 80%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-fill-color: transparent;
+    background-size: 500% auto;
+    animation: textShine 5s ease-in-out infinite alternate;
+}
+
+@keyframes textShine {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+
+.start > button {
+    border: none;
+    background-color: #310e68;
+    background-image: linear-gradient(316deg, #310e68 0%, #5f0f40 74%);
+    color: white;
+    font-family: 'Pixelify Sans', Serif, serif;
+}
+
+
+
+

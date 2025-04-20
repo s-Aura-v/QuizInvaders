@@ -1,8 +1,10 @@
 const canvas = document.querySelector("canvas");
 const c = canvas.getContext('2d');
+const stars = [];
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
+createStars();
 
 const SPEED = 7;
 const PROJECTILE_SPEED = 8;
@@ -169,6 +171,7 @@ function parseInputData(text) {
 }
 
 document.getElementById('startButton').addEventListener('click', () => {
+
     const textInput = document.getElementById('textInput').value.trim();
 
     if (textInput.length > 0) {
@@ -177,6 +180,16 @@ document.getElementById('startButton').addEventListener('click', () => {
     } else {
         alert('Please paste text or upload a file.');
     }
+
+    const iframe = document.getElementById('bg-music');
+    const iframeSrc = iframe.getAttribute('src');
+
+    if (iframeSrc.includes("mute=1")) {
+        iframe.setAttribute('src', iframeSrc.replace("mute=1", "mute=0"));
+    }
+
+    // Hide the start screen if you're not already doing that
+    document.getElementById('start-screen').style.display = 'none';
 });
 
 document.getElementById('fileInput').addEventListener('change', (event) => {
@@ -190,6 +203,36 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
     };
     reader.readAsText(file);
 });
+
+function createStars(count = 200) {
+    for (let i = 0; i < count; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 1.5,
+            alpha: Math.random(),         // brightness (0 to 1)
+            delta: (Math.random() * 0.02) - 0.01 // twinkle speed
+        });
+    }
+}
+
+function drawTwinklingStars(ctx) {
+    for (const star of stars) {
+        // update brightness
+        star.alpha += star.delta;
+        if (star.alpha <= 0 || star.alpha >= 1) {
+            star.delta *= -1; // reverse direction
+            star.alpha = Math.max(0, Math.min(1, star.alpha)); // clamp
+        }
+
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+        ctx.fill();
+    }
+}
+
+
 
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
@@ -244,17 +287,8 @@ function animate() {
 
     c.fillStyle = 'black';
     c.fillRect(0, 0, canvas.width, canvas.height);
+    drawTwinklingStars(c);
 
-    if (!gameStarted) {
-        c.fillStyle = 'white';
-        c.font = '60px "Pixelify Sans"';
-        c.textAlign = 'center';
-        c.fillText('QuizInvaders', canvas.width / 2, canvas.height / 2 - 60);
-
-        c.font = '30px Arial';
-        c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2 + 20);
-        return;
-    }
 
     const allTermsMatched = Array.from(termDefInvaders.keys()).every(term =>
         permanentlyRemoved.has(term) && permanentlyRemoved.has(termDefInvaders.get(term))
@@ -271,6 +305,11 @@ function animate() {
         c.fillText('Refresh to play again', canvas.width / 2, canvas.height / 2 + 60);
         return;
     }
+
+    c.fillStyle = 'white';
+    c.font = '24px Arial';
+    c.textAlign = 'left';
+    c.fillText(`Matched Pairs: ${permanentlyRemoved.size/2}/${termDefInvaders.size}`, canvas.width / 2, canvas.height - 20);
 
 
     player.update();
