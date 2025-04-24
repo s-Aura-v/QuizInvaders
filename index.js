@@ -1,14 +1,14 @@
 const canvas = document.querySelector("canvas");
 const c = canvas.getContext('2d');
 const stars = [];
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = 800;
+canvas.height = 800;
 createStars();
 
 const SPEED = 7;
 const SPRINT_SPEED = 15;
 const PROJECTILE_SPEED = 8;
-const PLAYER_HP = 3;
+const PLAYER_HP = 5;
 const INVADER_HP = 3;
 
 let gameStarted = false;
@@ -211,9 +211,9 @@ function createStars(count = 200) {
         stars.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            radius: Math.random() * 1.5,
+            radius: Math.random() * 2.0,
             alpha: Math.random(),         // brightness (0 to 1)
-            delta: (Math.random() * 0.02) - 0.01 // twinkle speed
+            delta: (Math.random() * 0.04) - 0.01 // twinkle speed
         });
     }
 }
@@ -384,10 +384,11 @@ function animate() {
                             a.isMarked = false;
                             b.isMarked = false;
                         }, 500);
+                        player.hp--;
+                        console.log(player.hp)
                     }
 
                     markedTargets.length = 0;
-
                 }
 
                 markProjectiles.splice(i, 1);

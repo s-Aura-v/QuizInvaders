@@ -1,10 +1,13 @@
 body {
     margin: 0;
     overflow: hidden;
+    background-color: black;
+    color:white;
+    font-family: 'Pixelify Sans', Serif, serif;
 }
 
 #start-screen {
-    background: radial-gradient(circle at 100%, #333, #333 50%, #eee 75%, #333 75%);
+    background: radial-gradient(circle at 100%, #333, #333 50%, #eee 75%, #000 75%);
 }
 
 .start-container {
@@ -62,6 +65,44 @@ body {
     padding: 10px;
 }
 
+.side-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    /*width: calc(100vw - 20%);*/
+    /*height: calc(100vh - 20%);*/
+}
+
+.side-content > div {
+    flex: 1;
+}
+
+.center-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.center-page > div {
+    flex:1;
+}
+
+.controls-page {
+    /*background-color: #764ada;*/
+    padding: 15px;
+    font-size: 2em;
+}
+
+.controls-page > ul {
+    padding: 0;
+}
+.controls-page > ul > li {
+    text-decoration: none;
+    list-style-type: none;
+    padding: 0;
+}
 
 
 
